@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="1">
+  <Properties>
+    <Name>Team Color Mod</Name>
+    <Description>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Description>
+    <Teaser>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Teaser>
+    <Created>1685760070</Created>
+    <Authors>rigu</Authors>
+    <CompatibleVersions>2.0</CompatibleVersions>
+  </Properties>
+  <FrontEndActions>
+    <UpdateColors id="UpFront">
+      <Properties>
+        <LoadOrder>1100</LoadOrder>
+      </Properties>
+      <File>TeamColor.sql</File>
+    </UpdateColors>
+  </FrontEndActions>
+  <InGameActions>
+    <UpdateColors id="Database">
+      <Properties>
+        <LoadOrder>1100</LoadOrder>
+      </Properties>
+      <File>TeamColor.sql</File>
+    </UpdateColors>
+  </InGameActions>
+  <Files>
+    <File>TeamColor.sql</File>
+  </Files>
+</Mod>
