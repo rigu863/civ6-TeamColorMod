@@ -9,6 +9,7 @@ include( "LoyaltySupport" );
 include( "Civ6Common" );
 include( "Colors" );
 include( "CitySupport" );
+include("TeamSupport");
 
 -- ===========================================================================
 --	GLOBALS
@@ -817,6 +818,7 @@ function CityBanner:UpdateColor()
 
 	local backColor, frontColor = UI.GetPlayerColors( self.m_Player:GetID() );
 	local darkerBackColor :number = UI.DarkenLightenColor(backColor,-85,238);
+	local teamColor = GetTeamColor(PlayerConfigurations[ self.m_Player:GetID() ]:GetTeam());
 
 	if (self.m_Type == BANNERTYPE_CITY_CENTER) then
 		self.m_Instance.CityBannerFill:SetColor( backColor );
@@ -824,6 +826,9 @@ function CityBanner:UpdateColor()
 		self.m_Instance.CityBannerFillOut:SetColor( frontColor );
 		self.m_Instance.CityName:SetColor( frontColor, 0 );
 		self.m_Instance.CityName:SetColor( darkerBackColor, 1 );
+
+		self.m_Instance.TeamCityBannerFill:SetColor( teamColor );
+
 		if self.m_CivIconInstance then
 			self.m_CivIconInstance.Icon:SetColor( frontColor );
 		end

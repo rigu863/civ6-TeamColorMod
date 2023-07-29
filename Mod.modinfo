@@ -8,23 +8,42 @@
     <Authors>rigu</Authors>
     <CompatibleVersions>2.0</CompatibleVersions>
   </Properties>
-  <FrontEndActions>
-    <UpdateColors id="UpFront">
-      <Properties>
-        <LoadOrder>1100</LoadOrder>
-      </Properties>
-      <File>TeamColor.sql</File>
-    </UpdateColors>
-  </FrontEndActions>
+
   <InGameActions>
-    <UpdateColors id="Database">
+    <ReplaceUIScript id="TeamColor_UnitFlagManager">
       <Properties>
-        <LoadOrder>1100</LoadOrder>
+        <LoadOrder>10100</LoadOrder>
+
+        <LuaContext>UnitFlagManager</LuaContext>
+        <LuaReplace>UnitFlagManager.lua</LuaReplace>
       </Properties>
-      <File>TeamColor.sql</File>
-    </UpdateColors>
+    </ReplaceUIScript>
+    <ReplaceUIScript id="TeamColor_CityBannerManager">
+      <Properties>
+        <LoadOrder>10100</LoadOrder>
+
+        <LuaContext>CityBannerManager</LuaContext>
+        <LuaReplace>CityBannerManager.lua</LuaReplace>
+      </Properties>
+    </ReplaceUIScript>
+
+    <ImportFiles id="Import">
+      <Properties>
+        <LoadOrder>10100</LoadOrder>
+      </Properties>
+      <Items>
+        <File>UnitFlagManager.lua</File>
+        <File>UnitFlagManager.xml</File>
+        <File>CityBannerManager.lua</File>
+        <File>CityBannerInstances.xml</File>
+      </Items>
+    </ImportFiles>
   </InGameActions>
+
   <Files>
-    <File>TeamColor.sql</File>
+    <File>UnitFlagManager.lua</File>
+    <File>UnitFlagManager.xml</File>
+    <File>CityBannerManager.lua</File>
+    <File>CityBannerInstances.xml</File>
   </Files>
 </Mod>

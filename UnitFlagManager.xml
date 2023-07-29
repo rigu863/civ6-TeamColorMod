@@ -32,6 +32,7 @@
 
          <!-- Black Border & Actual flag -->
          <Image ID="FlagBase" Size="64,64" Texture="UnitFlagBase_Combo.dds" />
+         <Image ID="TeamFlag" Size="64,64" Texture="UnitFlagBase_Combo.dds" TextureOffset="0,64" Color="0,0,0,255" Hidden="1" />
 
         <AlphaAnim ID="AnimOnMouseOut" ShowOnMouseOut="1" AlphaStart="1" AlphaEnd="0" Speed="2" Function="Root" Cycle="Once">
           <Image ID="FlagMouseOut" Size="64,64"	TextureOffset="0,64"	Texture="UnitFlagBase_Combo.dds"/>

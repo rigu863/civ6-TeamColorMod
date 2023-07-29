@@ -36,6 +36,7 @@
 				<Button ID="CityBannerButton" Anchor="L,T" Size="parent,parent" NoStateChange="true">
 					<!-- COLORED BG -->
 					<Grid ID="CityBannerFill" Anchor="C,T" Size="parent,parent" Texture="Banner_FrameBase_Combo" SliceTextureSize="113,41" SliceCorner="18,7" SliceSize="76,27"/>
+					<Grid ID="TeamCityBannerFill" Anchor="C,T" Size="parent,parent" Texture="Banner_FrameSecondary_Combo" SliceTextureSize="113,41" SliceCorner="18,7" SliceSize="76,27" Color="0,0,0,255"/>
 
 					<!-- OUTLINE: MOUSE IN / OUT -->
 					<AlphaAnim ID="CityBannerFillOverAnim" Anchor="C,T" Size="parent,parent" ShowOnMouseOver="1" AlphaStart="0" AlphaEnd="1" Speed="2" Function="Root" Cycle="Once">

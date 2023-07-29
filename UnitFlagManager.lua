@@ -6,6 +6,7 @@
 include( "InstanceManager" );
 include( "SupportFunctions" );
 include( "Civ6Common" );
+include("TeamSupport");
 
 
 -- ===========================================================================
@@ -491,6 +492,7 @@ end
 -- Set the flag color based on the player colors.
 function UnitFlag.SetColor( self )
 	local primaryColor, secondaryColor = UI.GetPlayerColors( self.m_Player:GetID() );
+	local teamColor = GetTeamColor(PlayerConfigurations[ self.m_Player:GetID() ]:GetTeam());
 
 	local instance:table = self.m_Instance;
 	instance.FlagBase:SetColor( primaryColor );
@@ -498,6 +500,14 @@ function UnitFlag.SetColor( self )
 	instance.UnitIcon:SetColor( secondaryColor );
 	instance.FlagMouseOut:SetColor( secondaryColor );
 	instance.FlagMouseOver:SetColor( secondaryColor );
+
+	instance.TeamFlag:SetColor( teamColor );
+
+	if self.m_Player:IsBarbarian() or self.m_Player:IsFreeCities() then
+		instance.TeamFlag:SetHide(true);
+	else
+		instance.TeamFlag:SetHide(false);
+	end
 
 	-- Set air unit list button color
 	instance = instance.AirUnitInstance;
@@ -622,6 +632,8 @@ function UnitFlag.UpdateFlagType( self )
 	self.m_Instance.FlagMouseOut:SetTexture( textureName );
 	self.m_Instance.FlagMouseOver:SetTexture( textureName );
 	self.m_Instance.HealthBarBG:SetTexture( textureName );
+
+	self.m_Instance.TeamFlag:SetTexture( textureName );
 end
 
 ------------------------------------------------------------------
@@ -675,8 +687,8 @@ function UnitFlag.UpdateHealth( self )
 	self.m_Instance.HealthBar:SetPercent( healthPercent );
 end
 
-------------------------------------------------------------------	 	 
--- Update the hero glow.	 	 
+------------------------------------------------------------------	ï¿½	ï¿½
+-- Update the hero glow.	ï¿½	ï¿½
 function UnitFlag.UpdateHeroGlow( self )
 	local pUnit:table = self:GetUnit();
 	if pUnit ~= nil then
