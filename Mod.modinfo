@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="1">
+<Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="2.0">
   <Properties>
     <Name>Team Color Mod</Name>
     <Description>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Description>
@@ -9,8 +9,14 @@
     <CompatibleVersions>2.0</CompatibleVersions>
   </Properties>
 
+  <ActionCriteria>
+    <Criteria id="XP2">
+      <RuleSetInUse>RULESET_EXPANSION_2</RuleSetInUse>
+    </Criteria>
+  </ActionCriteria>
+
   <InGameActions>
-    <ReplaceUIScript id="TeamColor_UnitFlagManager">
+    <ReplaceUIScript id="TeamColor_UnitFlagManager" criteria="XP2">
       <Properties>
         <LoadOrder>10100</LoadOrder>
 
@@ -18,7 +24,7 @@
         <LuaReplace>UnitFlagManager.lua</LuaReplace>
       </Properties>
     </ReplaceUIScript>
-    <ReplaceUIScript id="TeamColor_CityBannerManager">
+    <ReplaceUIScript id="TeamColor_CityBannerManager" criteria="XP2">
       <Properties>
         <LoadOrder>10100</LoadOrder>
 
@@ -27,7 +33,7 @@
       </Properties>
     </ReplaceUIScript>
 
-    <ImportFiles id="Import">
+    <ImportFiles id="Import" criteria="XP2">
       <Properties>
         <LoadOrder>10100</LoadOrder>
       </Properties>

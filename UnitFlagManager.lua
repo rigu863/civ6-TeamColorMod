@@ -7,6 +7,7 @@ include( "InstanceManager" );
 include( "SupportFunctions" );
 include( "Civ6Common" );
 include("TeamSupport");
+print("UnitFlagManager for Better Spectator Mod and Team Color Mod");
 
 
 -- ===========================================================================
@@ -89,6 +90,9 @@ local m_HeroGlowIM					:table = InstanceManager:new( "HeroGlowInstance", "Root" 
 local m_DirtyComponents				:table  = nil;
 local m_UnitFlagInstances			:table  = {};
 local m_isMapDeselectDisabled		:boolean= false;
+
+local g_anon						:boolean= false;
+local g_spec						:boolean= false;
 
 -- COMMENTING OUT hstructures.
 -- These structures remained defined for the entire lifetime of the application.
@@ -245,6 +249,11 @@ function UnitFlag.Initialize( self, playerID: number, unitID : number, flagType 
 		self.m_IsDimmed = false;
 		self.m_OverrideDimmed = false;
 		self.m_FogState = 0;
+
+		if (g_spec == true) then
+			self.m_IsCurrentlyVisible = true
+			self.m_FogState = 2;
+		end	
 	
 		self.m_Player = Players[playerID];
 		self.m_UnitID = unitID;
@@ -283,7 +292,14 @@ function OnUnitFlagClick( playerID : number, unitID : number )
 		return;
 	end
 
-	if Game.GetLocalPlayer() ~= pUnit:GetOwner() then
+	if (g_spec == true) then
+		UI.DeselectAllUnits();
+		UI.DeselectAllCities();
+		UI.SelectUnit( pUnit );
+		return
+	end					
+
+	if Game.GetLocalPlayer() ~= pUnit:GetOwner() and g_spec == false then
 
 		-- Enemy unit; this may start an attack...
 		-- Does player have a selected unit?
@@ -477,7 +493,7 @@ end
 
 -- ===========================================================================
 function OnUnitSelected( playerID:number, unitID:number )
-	if playerID == Game.GetLocalPlayer() then	-- The local player can only select their own units.
+	if playerID == Game.GetLocalPlayer() or g_spec == true then	-- The local player can only select their own units.
 		local playerUnits:table = Players[playerID]:GetUnits();
 		if playerUnits then
 			local selectedUnit:table = playerUnits:FindID(unitID);
@@ -571,6 +587,13 @@ end
 ------------------------------------------------------------------
 -- Change the flag's fog state
 function UnitFlag.SetFogState( self, fogState : number )
+
+	if (g_spec == true) then
+		self.m_eVisibility = 2
+		self:SetHide( false )
+		self.m_FogState = 2
+		return
+	end	
 
 	self.m_eVisibility = fogState;
 
@@ -690,8 +713,8 @@ function UnitFlag.UpdateHealth( self )
 	self.m_Instance.HealthBar:SetPercent( healthPercent );
 end
 
-------------------------------------------------------------------	�	�
--- Update the hero glow.	�	�
+------------------------------------------------------------------
+-- Update the hero glow.
 function UnitFlag.UpdateHeroGlow( self )
 	local pUnit:table = self:GetUnit();
 	if pUnit ~= nil then
@@ -835,9 +858,18 @@ function UnitFlag.UpdateName( self )
 	if pUnit ~= nil then
 		local unitName = pUnit:GetName();
 		local pPlayerCfg = PlayerConfigurations[ self.m_Player:GetID() ];
+		local playername =  pPlayerCfg:GetPlayerName()
+		if g_anon == true and not g_spec then
+			playername = "Anon_"..self.m_Player:GetID()
+		end
+		if playername == nil then
+			playername = ""
+		end
+		
 		local nameString : string;
+
 		if(GameConfiguration.IsAnyMultiplayer() and pPlayerCfg:IsHuman()) then
-			nameString = Locale.Lookup( pPlayerCfg:GetCivilizationShortDescription() ) .. " (" .. Locale.Lookup(pPlayerCfg:GetPlayerName()) .. ") - " .. Locale.Lookup( unitName );
+			nameString = Locale.Lookup( pPlayerCfg:GetCivilizationShortDescription() ) .. " (" .. playername .. ") - " .. Locale.Lookup( unitName );
 		else
 			nameString = Locale.Lookup( pPlayerCfg:GetCivilizationShortDescription() ) .. " - " .. Locale.Lookup( unitName );
 		end
@@ -2090,6 +2122,16 @@ end
 --	Initialize pattern, override if modding.
 -- ===========================================================================
 function LateInitialize()
+	if GameConfiguration.GetValue("GAMEMODE_ANONYMOUS") == true then
+		g_anon = true
+	end
+	local localPlayerId = Game.GetLocalPlayer()
+	
+	if localPlayerId ~= nil and localPlayerId > -1 then
+		if PlayerConfigurations[localPlayerId]:GetLeaderTypeName() == "LEADER_SPECTATOR" then
+			g_spec = true
+		end
+	end
 end
 
 

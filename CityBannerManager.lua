@@ -10,6 +10,7 @@ include( "Civ6Common" );
 include( "Colors" );
 include( "CitySupport" );
 include("TeamSupport");
+print("CityBannerManager for Better Spectator Mod and Team Color Mod");
 
 -- ===========================================================================
 --	GLOBALS
@@ -98,6 +99,8 @@ local m_refreshPlayerBanner		:table = {};		-- tracks if a player needs all of th
 
 local m_DelayedUpdate : table = {};
 
+-- Spec
+local m_bspec = false
 
 -- ===========================================================================
 --	MEMBERS
@@ -221,6 +224,117 @@ end
 
 -- ===========================================================================
 function CityBanner:Initialize( playerID: number, cityID : number, districtID : number, bannerType : number, bannerStyle : number)
+
+		-- =======================================================================
+	-- S P E C
+	-- =======================================================================
+	if m_bspec == true then
+	self.m_Player = Players[playerID];
+	self.m_DistrictID = districtID;
+	self.m_CityID = cityID;
+
+	self.m_Type = bannerType;
+	self.m_Style = bannerStyle;
+	self.m_IsSelected = false;
+	self.m_IsCurrentlyVisible = false;
+	self.m_IsForceHide = false;
+	self.m_IsDimmed = false;
+	self.m_OverrideDim = false;
+	self.m_FogState = 0;
+	self.m_UnitListEnabled = false;
+
+	self.m_eMajorityReligion = -1;		-- Assign default values
+	self.m_eLoyaltyWarningPlayer = -1;	-- which player the city might flip to within X turns (default 20)
+
+
+	if (bannerType == BANNERTYPE_CITY_CENTER) then
+		local pCity = self:GetCity();
+		if pCity ~= nil then
+			self.m_PlotX = pCity:GetX();
+			self.m_PlotY = pCity:GetY();
+		end
+
+		-- Instantiate the banner
+		self.m_InstanceManager = m_CityBannerIM;
+		self.m_Instance = self.m_InstanceManager:GetInstance();
+
+		-- Only create instance managers once, otherwise we can leak instances
+		if self.m_DetailStatusIM == nil then
+			self.m_DetailStatusIM = InstanceManager:new( "CityDetailStatus", "Icon", self.m_Instance.CityDetailsStatus );
+		end
+		if self.m_DetailEffectsIM == nil then
+			self.m_DetailEffectsIM = InstanceManager:new( "CityDetailEffect", "Button", self.m_Instance.CityDetailsEffects );	--XP2 diff for Power menu
+		end
+		if self.m_InfoIconIM == nil then
+			self.m_InfoIconIM = InstanceManager:new( "CityInfoType", "Button", self.m_Instance.CityInfoStack );
+		end
+		if self.m_InfoConditionIM == nil then
+			self.m_InfoConditionIM = InstanceManager:new( "CityInfoCondition", "Button", self.m_Instance.CityInfoStack );
+		end
+		if self.m_StatGovernorIM == nil then
+			self.m_StatGovernorIM = InstanceManager:new( "CityStatGovernor", "Button", self.m_Instance.CityStatusStack );
+		end
+		if self.m_StatProductionIM == nil then
+			self.m_StatProductionIM = InstanceManager:new( "CityStatProduction", "Button", self.m_Instance.CityStatusStack );
+		end
+		
+		-- If instance managers need to be re-created, you can clean up instances manually
+		if self.m_StatPopulationIM then
+			self.m_StatPopulationIM:DestroyInstances();
+			self.m_StatPopulationIM = nil;
+		end
+
+		self.m_Instance.CityBannerButton:RegisterCallback( Mouse.eLClick, OnCityBannerClick );
+		self.m_Instance.CityBannerButton:SetVoid1(playerID);
+		self.m_Instance.CityBannerButton:SetVoid2(cityID);
+		self.m_StatPopulationIM = InstanceManager:new( "CityStatPopulation", "Button", self.m_Instance.CityStatusStack );
+
+		self:UpdateReligion();
+
+		local loyaltyInfo:table = self.m_Instance.LoyaltyInfo;
+		local toggleLoyalty = function(on)
+			return function()
+				loyaltyInfo.CulturalIdentityButton:SetHide(on);
+				loyaltyInfo.CulturalIdentityExpandedButton:SetHide(not on);
+			end
+		end
+		loyaltyInfo.CulturalIdentityButton:RegisterCallback( Mouse.eLClick, toggleLoyalty(true) );
+		loyaltyInfo.CulturalIdentityExpandedButton:RegisterCallback( Mouse.eLClick, toggleLoyalty(false) );
+
+		if self.m_LoyaltyBreakdownIM == nil then
+			self.m_LoyaltyBreakdownIM = InstanceManager:new("InfluenceLineInstance","Top", self.m_Instance.LoyaltyInfo.IdentityBreakdownStack);
+		end
+
+		self:UpdateLoyalty();
+	elseif (bannerType == BANNERTYPE_AERODROME) then
+		self:CreateAerodromeBanner();
+		self:UpdateAerodromeBanner();
+	elseif (bannerType == BANNERTYPE_MISSILE_SILO) then
+		self:CreateWMDBanner();
+		self:UpdateWMDBanner();
+	elseif (bannerType == BANNERTYPE_ENCAMPMENT) then
+		self:CreateEncampmentBanner();
+		self:UpdateEncampmentBanner();
+	elseif (bannerType == BANNERTYPE_OTHER_DISTRICT) then
+		self:CreateDistrictBanner();
+		self:UpdateDistrictBanner();
+	elseif (bannerType == BANNERTYPE_MOUNTAIN_TUNNEL) then
+		self:CreateTunnelBanner();
+	elseif (bannerType == BANNERTYPE_QHAPAQ_NAN) then
+		self:CreateQhapaqNanBanner();
+	else	-- hook for extensions
+		self:InitializeOtherBannerTypes(bannerType);
+	end
+
+	self:UpdateName();
+	self:UpdateStats();
+	self:UpdatePosition();
+	self:UpdateVisibility();
+	self:UpdateRangeStrike();
+	self:UpdateColor();	
+		return
+	end
+
 	self.m_Player = Players[playerID];
 	self.m_DistrictID = districtID;
 	self.m_CityID = cityID;
@@ -756,6 +870,9 @@ end
 
 -- ===========================================================================
 function CityBanner:IsVisible()
+	if m_bspec == true then
+		return true
+	end
 	if Game.GetLocalPlayer() >= 0 then
 		local pLocalPlayerVis:table = PlayersVisibility[Game.GetLocalPlayer()];
 		local city:table = self:GetCity();
@@ -1032,6 +1149,10 @@ end
 -- ===========================================================================
 -- Non-instance function so it can be overwritten by mods
 function CityBanner:UpdatePopulation(isLocalPlayer:boolean, pCity:table, pCityGrowth:table)
+	-- Spec
+	if m_bspec == true then
+		isLocalPlayer = true
+	end
 
 	self.m_StatPopulationIM:ResetInstances();
 
@@ -1114,6 +1235,128 @@ end
 -- ===========================================================================
 -- Non-instance function so it can be overwritten by mods
 function CityBanner:UpdateGovernor(pCity:table)
+	
+	-- =======================================================================
+	-- S P E C
+	-- =======================================================================
+	if m_bspec == true then
+	self.m_StatGovernorIM:ResetInstances();
+
+	local localPlayerID:number = Game.GetLocalPlayer();
+
+	if localPlayerID < 0 then
+		return;
+	end
+
+	local pLocalPlayer:table = Players[localPlayerID];
+	local pLocalPlayerDiplomacy:table = pLocalPlayer:GetDiplomacy();
+
+	local isCityState:boolean = false;
+	local cityOwner:number = pCity:GetOwner();
+	for i, pCityState in ipairs(PlayerManager.GetAliveMinors()) do
+		if pCityState:GetID() == cityOwner then
+			isCityState = true;
+			break;
+		end
+	end
+
+	-- Always show local players governor first
+	local otherGovernors = 0;
+	local otherGovernorsTT = Locale.Lookup("LOC_CITY_STATE_PANEL_HAS_AMBASSADOR_TOOLTIP");
+
+	local governors:table = pCity:GetAllAssignedGovernors();
+	table.sort(governors, function(a, b) return a:GetOwner() == localPlayerID end);
+
+	for i, pGovernor in ipairs(governors) do
+		local playerID:number = pGovernor:GetOwner();
+		local visibility:number = DiplomaticVisibilityTypes.TOP_SECRET + 1;
+
+		-- Always show full icon for local players governors, even on city states
+		if not isCityState or playerID == localPlayerID then
+			local instance:table = self.m_StatGovernorIM:GetInstance();
+			instance.NumOfAmbassadors:SetText("");
+
+				instance.UnknownGovernor:SetHide(true);
+				local icon = "ICON_" .. GameInfo.Governors[pGovernor:GetType()].GovernorType;
+				instance.SlotMeter:SetTexture(IconManager:FindIconAtlas(icon .. "_SLOT", 32));
+				instance.FillMeter:SetTexture(IconManager:FindIconAtlas(icon .. "_FILL", 32));
+
+					if (pGovernor:IsEstablished()) then
+						instance.TurnsLeft:SetText("");
+						instance.FillMeter:SetPercent(1);
+						instance.SlotMeter:SetPercent(0);
+						instance.FillMeter:SetToolTipString(Locale.Lookup("LOC_HUD_CITY_GOVERNOR_ESTABLISHED_SPECIFIC", pGovernor:GetName()));
+					else
+						local iTurnsOnSite:number = pGovernor:GetTurnsOnSite();
+						local iTurnsToEstablish:number = pGovernor:GetTurnsToEstablish();
+						local iTurnsUntilEstablished:number = iTurnsToEstablish - iTurnsOnSite;
+						local establishedPct:number = (iTurnsToEstablish - iTurnsUntilEstablished) / iTurnsToEstablish;
+
+						instance.TurnsLeft:SetText(tostring(iTurnsUntilEstablished));
+						instance.FillMeter:SetPercent(establishedPct);
+						instance.SlotMeter:SetPercent(1 - establishedPct);
+
+						local tooltip:string = Locale.Lookup("LOC_HUD_CITY_GOVERNOR_ASSIGNED_SPECIFIC", pGovernor:GetName());
+						tooltip = tooltip .. "[NEWLINE]";
+						tooltip = tooltip .. Locale.Lookup("LOC_GOVERNORS_SCREEN_GOVERNOR_TURNS_UNTIL_ESTABLISHED", iTurnsUntilEstablished);
+						instance.FillMeter:SetToolTipString(tooltip);
+					end
+			
+
+		else -- We must be a city state, multiple diplomats can be slotted here (but only show one icon)
+			local playerID:number = pGovernor:GetOwner();
+			local visibility:number = DiplomaticVisibilityTypes.TOP_SECRET + 1;
+
+			if playerID ~= localPlayerID then
+				otherGovernors = otherGovernors + 1;
+				visibility = pLocalPlayerDiplomacy:GetVisibilityOn(playerID);
+			end
+
+			local establishInfo;
+				if (pGovernor:IsEstablished()) then
+					establishInfo = Locale.Lookup("LOC_HUD_CITY_GOVERNOR_ESTABLISHED");
+				else
+					local iTurnsOnSite:number = pGovernor:GetTurnsOnSite();
+					local iTurnsToEstablish:number = pGovernor:GetTurnsToEstablish();
+					local iTurnsUntilEstablished:number = iTurnsToEstablish - iTurnsOnSite;
+					establishInfo = Locale.Lookup("LOC_GOVERNORS_SCREEN_GOVERNOR_TURNS_UNTIL_ESTABLISHED", iTurnsUntilEstablished);
+				end
+
+			local playerConfig = PlayerConfigurations[playerID];
+			local bHasMet:boolean = pLocalPlayerDiplomacy:HasMet(playerID);
+			if establishInfo then
+				if (bHasMet) then
+					otherGovernorsTT = otherGovernorsTT .. Locale.Lookup("LOC_CITY_BANNER_HAS_AMBASSADOR_TOOLTIP_ENTRY_FULL", Locale.Lookup(playerConfig:GetCivilizationDescription()), Locale.Lookup(playerConfig:GetPlayerName()), establishInfo);
+				else
+					otherGovernorsTT = Locale.Lookup("LOC_CITY_STATE_PANEL_HAS_AMBASSADOR_TOOLTIP_ENTRY_UNMET", Locale.Lookup(playerConfig:GetCivilizationDescription()), Locale.Lookup(playerConfig:GetPlayerName()));
+				end
+			else
+				if (bHasMet) then
+					otherGovernorsTT = otherGovernorsTT .. Locale.Lookup("LOC_CITY_BANNER_HAS_AMBASSADOR_TOOLTIP_ENTRY_LIMITED", Locale.Lookup(playerConfig:GetCivilizationDescription()), Locale.Lookup(playerConfig:GetPlayerName()));
+				else
+					otherGovernorsTT = otherGovernorsTT .. Locale.Lookup("LOC_CITY_STATE_PANEL_HAS_AMBASSADOR_TOOLTIP_ENTRY_UNMET", Locale.Lookup("LOC_LOYALTY_PANEL_UNMET_CIV"));
+				end
+			end
+		end
+	end
+
+	-- We must be a city state, multiple diplomats can be slotted here (but only show one icon)
+	if otherGovernors > 0 then
+		local instance:table = self.m_StatGovernorIM:GetInstance();
+		instance.FillMeter:SetPercent(1.0);
+		instance.FillMeter:SetTexture(IconManager:FindIconAtlas("ICON_GOVERNOR_OTHER_AMBASSADORS_FILL", 32));
+		instance.SlotMeter:SetPercent(0);
+		instance.UnknownGovernor:SetHide(true);
+		instance.FillMeter:SetToolTipString(otherGovernorsTT);
+		instance.TurnsLeft:SetText("");
+		instance.NumOfAmbassadors:SetText(otherGovernors > 1 and tostring(otherGovernors) or "");
+
+		instance.Button:RegisterCallback(Mouse.eLClick, OnGovernorIconClicked);
+		instance.Button:SetVoid1(pCity:GetOwner());
+		instance.Button:SetVoid2(pCity:GetID());
+	end
+		return
+	end
 	
 	self.m_StatGovernorIM:ResetInstances();
 
@@ -1267,6 +1510,102 @@ end
 
 -- ===========================================================================
 function CityBanner:UpdateStats()
+	-- =======================================================================
+	-- S P E CAPABILITY_ESPIONAGE
+	-- =======================================================================
+	if m_bspec == true then
+		local pDistrict:table = self:GetDistrict();
+			local localPlayerID:number = Game.GetLocalPlayer();
+		
+			if (pDistrict ~= nil) then
+		
+				if self.m_Type == BANNERTYPE_CITY_CENTER then
+		
+					local pCity				:table = self:GetCity();
+					local iCityOwner		:number = pCity:GetOwner();
+					local pCityGrowth		:table  = pCity:GetGrowth();
+					local populationIM		:table;
+		
+		
+						self:UpdatePopulation(true, pCity, pCityGrowth);
+						self:UpdateGovernor(pCity);
+						self:UpdateProduction(pCity);
+		
+		
+					--- DEFENSE INFO ---
+					local districtHitpoints		:number = pDistrict:GetMaxDamage(DefenseTypes.DISTRICT_GARRISON);
+					local currentDistrictDamage :number = pDistrict:GetDamage(DefenseTypes.DISTRICT_GARRISON);
+					local wallHitpoints			:number = pDistrict:GetMaxDamage(DefenseTypes.DISTRICT_OUTER);
+					local currentWallDamage		:number = pDistrict:GetDamage(DefenseTypes.DISTRICT_OUTER);
+					local garrisonDefense		:number = math.floor(pDistrict:GetDefenseStrength() + 0.5);
+		
+					local garrisonDefString :string = Locale.Lookup("LOC_CITY_BANNER_GARRISON_DEFENSE_STRENGTH");
+					local defValue = garrisonDefense;
+					local defTooltip = garrisonDefString .. ": " .. garrisonDefense;
+					local healthTooltip :string = Locale.Lookup("LOC_CITY_BANNER_GARRISON_HITPOINTS", ((districtHitpoints-currentDistrictDamage) .. "/" .. districtHitpoints));
+					if (wallHitpoints > 0) then
+						self.m_Instance.DefenseIcon:SetHide(true);
+						self.m_Instance.ShieldsIcon:SetHide(false);
+						self.m_Instance.CityDefenseBarBacking:SetHide(false);
+						self.m_Instance.CityHealthBarBacking:SetHide(false);
+						self.m_Instance.CityDefenseBar:SetHide(false);
+						healthTooltip = healthTooltip .. "[NEWLINE]" .. Locale.Lookup("LOC_CITY_BANNER_OUTER_DEFENSE_HITPOINTS", ((wallHitpoints-currentWallDamage) .. "/" .. wallHitpoints));
+						self.m_Instance.CityDefenseBar:SetPercent((wallHitpoints-currentWallDamage) / wallHitpoints);
+						self.m_Instance.CityDefenseBarBacking:SetToolTipString(healthTooltip);
+					else
+						self.m_Instance.CityDefenseBar:SetHide(true);
+						self.m_Instance.CityDefenseBarBacking:SetHide(true);
+						self.m_Instance.CityHealthBarBacking:SetHide(true);
+					end
+					self.m_Instance.DefenseNumber:SetText(defValue);
+					self.m_Instance.DefenseNumber:SetToolTipString(defTooltip);
+					self.m_Instance.CityHealthBarBacking:SetToolTipString(healthTooltip);
+					self.m_Instance.CityHealthBarBacking:SetHide(false);
+					if(districtHitpoints > 0) then
+						self.m_Instance.CityHealthBar:SetPercent((districtHitpoints-currentDistrictDamage) / districtHitpoints);	
+					else
+						self.m_Instance.CityHealthBar:SetPercent(0);	
+					end
+					self:SetHealthBarColor();	
+					
+					if (((districtHitpoints-currentDistrictDamage) / districtHitpoints) == 1 and wallHitpoints == 0) then
+						self.m_Instance.CityHealthBar:SetHide(true);
+						self.m_Instance.CityHealthBarBacking:SetHide(true);
+					else
+						self.m_Instance.CityHealthBar:SetHide(false);
+						self.m_Instance.CityHealthBarBacking:SetHide(false);
+					end
+		
+					self:UpdateDetails();
+					--------------------------------------
+				else -- it should be a miniBanner
+					
+					if (self.m_Type == BANNERTYPE_ENCAMPMENT) then 
+						self:UpdateEncampmentBanner();
+					elseif (self.m_Type == BANNERTYPE_AERODROME) then
+						self:UpdateAerodromeBanner();
+					elseif (self.m_Type == BANNERTYPE_OTHER_DISTRICT) then
+						self:UpdateDistrictBanner();
+					end
+					
+				end
+		
+			else  --it's a banner not associated with a district
+				if (self.m_IsImprovementBanner) then
+					local bannerPlot = Map.GetPlot(self.m_PlotX, self.m_PlotY);
+					if (bannerPlot ~= nil) then
+						if (self.m_Type == BANNERTYPE_AERODROME) then
+							self:UpdateAerodromeBanner();
+						elseif (self.m_Type == BANNERTYPE_MISSILE_SILO) then
+							self:UpdateWMDBanner();
+						else
+							self:UpdateOtherImprovementBannerTypes();
+						end
+					end
+				end
+			end
+				return
+			end
 	local pDistrict:table = self:GetDistrict();
 	local localPlayerID:number = Game.GetLocalPlayer();
 
@@ -1654,6 +1993,41 @@ end
 
 -- ===========================================================================
 function CityBanner:UpdateName()
+	-- =======================================================================
+	-- S P E C
+	-- =======================================================================
+	if m_bspec == true then
+		if (self.m_Type == BANNERTYPE_CITY_CENTER) then
+		local pCity : table = self:GetCity();
+		if pCity ~= nil then
+			local cityName:string = pCity:GetName();
+
+			local tooltip:string = "";
+			local owner:number = pCity:GetOwner();
+			local pPlayer:table  = Players[owner];
+			if pPlayer and pPlayer:IsMajor() then
+				tooltip = Locale.Lookup("LOC_CITY_BANNER_TT", cityName, PlayerConfigurations[owner]:GetCivilizationShortDescription());
+			else
+				tooltip = Locale.Lookup(cityName);
+			end
+			cityName = Locale.Lookup(cityName)
+			local team1Name = GameConfiguration.GetValue("BSM_TEAM1");
+			local team2Name = GameConfiguration.GetValue("BSM_TEAM2");
+			if team1Name ~= nil and team1Name ~= "" and PlayerConfigurations[owner]:GetTeam() == 0 then
+				cityName = team1Name.." "..cityName
+			end
+			if team2Name ~= nil and team2Name ~= "" and PlayerConfigurations[owner]:GetTeam() == 1 then
+				cityName = team2Name.." "..cityName
+			end
+			self.m_Instance.CityName:SetText( Locale.ToUpper(cityName) );
+			self.m_Instance.CityBannerButton:SetToolTipString( tooltip );
+			self:UpdateInfo( pCity );
+			self:Resize();
+		end
+		end
+		return
+	end
+
 	if (self.m_Type == BANNERTYPE_CITY_CENTER) then
 		local pCity : table = self:GetCity();
 		if pCity ~= nil then
@@ -2599,7 +2973,8 @@ function AddCityBannerToMap( playerID: number, cityID : number )
 	local pCity = pPlayer:GetCities():FindID(cityID);
 	if (pCity ~= nil) then
 		local idDistrict = pCity:GetDistrictID();
-		if (idLocalPlayer == playerID) then
+		-- Spec
+		if (idLocalPlayer == playerID) or (m_bspec  == true) then
 			return CityBanner:new( playerID, cityID, idDistrict, BANNERTYPE_CITY_CENTER, BANNERSTYLE_LOCAL_TEAM );
 		else
 			return CityBanner:new( playerID, cityID, idDistrict, BANNERTYPE_CITY_CENTER, BANNERSTYLE_OTHER_TEAM );
@@ -3770,7 +4145,17 @@ end
 
 -- ===========================================================================
 function Initialize()
+	-- Spec
+	if Game.GetLocalPlayer() == -1 or Game.GetLocalPlayer() == nil then
+		return
+	end
 
+	if PlayerConfigurations[Game.GetLocalPlayer()] ~= nil then
+		if PlayerConfigurations[Game.GetLocalPlayer()]:GetLeaderTypeName() == "LEADER_SPECTATOR" then
+			m_bspec = true
+		end
+	end
+	--
 	RegisterDirtyEvents();
 
 	ContextPtr:SetInitHandler( OnContextInitialize );
