@@ -30,6 +30,9 @@ BANNERTYPE_QHAPAQ_NAN		= UIManager:GetHash("BANNERTYPE_QHAPAQ_NAN");
 --	CONSTANTS
 -- ===========================================================================
 
+COLOR_RED			= UI.GetColorValue("COLOR_RED");
+COLOR_BLUE			= UI.GetColorValue("COLOR_BLUE");
+
 local ANIM_SPEED_RELIGION_CHANGE			:number = 1;
 local COLOR_CITY_GREEN						:number	= UI.GetColorValueFromHexLiteral(0xFF4CE710);
 local COLOR_CITY_RED						:number	= UI.GetColorValueFromHexLiteral(0xFF0101F5);
@@ -935,7 +938,7 @@ function CityBanner:UpdateColor()
 
 	local backColor, frontColor = UI.GetPlayerColors( self.m_Player:GetID() );
 	local darkerBackColor :number = UI.DarkenLightenColor(backColor,-85,238);
-	local teamColor = GetTeamColor(PlayerConfigurations[ self.m_Player:GetID() ]:GetTeam());
+	local teamID = self.m_Player:GetTeam();
 
 	if (self.m_Type == BANNERTYPE_CITY_CENTER) then
 		self.m_Instance.CityBannerFill:SetColor( backColor );
@@ -945,13 +948,18 @@ function CityBanner:UpdateColor()
 		self.m_Instance.CityName:SetColor( darkerBackColor, 1 );
 
 		self.m_Instance.TeamCityBannerFill:SetColor( teamColor );
+		if ( teamID == 0 ) then
+			self.m_Instance.TeamCityBannerFill:SetColor( COLOR_RED );
+		elseif( teamID == 1 ) then
+			self.m_Instance.TeamCityBannerFill:SetColor( COLOR_BLUE );
+		end
 
 		for _, playerID in ipairs(PlayerManager.GetAliveMajorIDs()) do
-			if playerID ~= self.m_Player:GetID() then
-				self.m_Instance.TeamCityBannerFill:SetHide(true);
-			else 
+			if playerID == self.m_Player:GetID() and ( teamID == 0 or teamID == 1 ) then
 				self.m_Instance.TeamCityBannerFill:SetHide(false);
 				break;
+			else 
+				self.m_Instance.TeamCityBannerFill:SetHide(true);
 			end
 		end
 

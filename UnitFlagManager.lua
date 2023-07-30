@@ -25,6 +25,7 @@ g_UnitsArcheology	= UILens.CreateLensLayerHash("Units_Archaeology");
 COLOR_RED			= UI.GetColorValue("COLOR_RED");		-- Obtain colors from colorDB (not const or colorAtlas)
 COLOR_YELLOW		= UI.GetColorValue("COLOR_YELLOW");		-- ditto
 COLOR_GREEN			= UI.GetColorValue("COLOR_STANDARD_GREEN_LT");		-- "
+COLOR_BLUE			= UI.GetColorValue("COLOR_BLUE");		-- "
 HEALTH_PERCENT_GOOD = 0.8;	-- This and above means a unit is still in good shape
 HEALTH_PERCENT_BAD	= 0.4;	-- Above this the unit is okay but below it, the unit is considered to be in bad shape
 
@@ -508,7 +509,7 @@ end
 -- Set the flag color based on the player colors.
 function UnitFlag.SetColor( self )
 	local primaryColor, secondaryColor = UI.GetPlayerColors( self.m_Player:GetID() );
-	local teamColor = GetTeamColor(PlayerConfigurations[ self.m_Player:GetID() ]:GetTeam());
+	local teamID = self.m_Player:GetTeam();
 
 	local instance:table = self.m_Instance;
 	instance.FlagBase:SetColor( primaryColor );
@@ -517,14 +518,18 @@ function UnitFlag.SetColor( self )
 	instance.FlagMouseOut:SetColor( secondaryColor );
 	instance.FlagMouseOver:SetColor( secondaryColor );
 
-	instance.TeamFlag:SetColor( teamColor );
+	if ( teamID == 0 ) then
+		instance.TeamFlag:SetColor( COLOR_RED );
+	elseif( teamID == 1 ) then
+		instance.TeamFlag:SetColor( COLOR_BLUE );
+	end
 
 	for _, playerID in ipairs(PlayerManager.GetAliveMajorIDs()) do
-		if playerID ~= self.m_Player:GetID() then
-			instance.TeamFlag:SetHide(true);
-		else 
+		if playerID == self.m_Player:GetID() and ( teamID == 0 or teamID == 1 ) then
 			instance.TeamFlag:SetHide(false);
 			break;
+		else 
+			instance.TeamFlag:SetHide(true);
 		end
 	end
 
