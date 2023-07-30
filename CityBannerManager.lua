@@ -829,6 +829,15 @@ function CityBanner:UpdateColor()
 
 		self.m_Instance.TeamCityBannerFill:SetColor( teamColor );
 
+		for _, playerID in ipairs(PlayerManager.GetAliveMajorIDs()) do
+			if playerID ~= self.m_Player:GetID() then
+				self.m_Instance.TeamCityBannerFill:SetHide(true);
+			else 
+				self.m_Instance.TeamCityBannerFill:SetHide(false);
+				break;
+			end
+		end
+
 		if self.m_CivIconInstance then
 			self.m_CivIconInstance.Icon:SetColor( frontColor );
 		end

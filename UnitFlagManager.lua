@@ -503,10 +503,13 @@ function UnitFlag.SetColor( self )
 
 	instance.TeamFlag:SetColor( teamColor );
 
-	if self.m_Player:IsBarbarian() or self.m_Player:IsFreeCities() then
-		instance.TeamFlag:SetHide(true);
-	else
-		instance.TeamFlag:SetHide(false);
+	for _, playerID in ipairs(PlayerManager.GetAliveMajorIDs()) do
+		if playerID ~= self.m_Player:GetID() then
+			instance.TeamFlag:SetHide(true);
+		else 
+			instance.TeamFlag:SetHide(false);
+			break;
+		end
 	end
 
 	-- Set air unit list button color
