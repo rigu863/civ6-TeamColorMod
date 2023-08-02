@@ -2,8 +2,8 @@
 <Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="2.0">
   <Properties>
     <Name>Team Color Mod</Name>
-    <Description>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Description>
-    <Teaser>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Teaser>
+    <Description>ユニットフラグと都市バナーにチームごとの色を縁どります。チーム1は赤色、チーム2は青色の縁を追加します。</Description>
+    <Teaser>ユニットフラグと都市バナーにチームごとの色を縁どります。チーム1は赤色、チーム2は青色の縁を追加します。</Teaser>
     <Created>1685760070</Created>
     <Authors>rigu</Authors>
     <CompatibleVersions>2.0</CompatibleVersions>
