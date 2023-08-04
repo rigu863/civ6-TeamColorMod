@@ -1,30 +1,55 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="1">
+<Mod id="0ed86aad-77b7-4b22-83bb-4fb0b9a19f17" version="2.0">
   <Properties>
     <Name>Team Color Mod</Name>
-    <Description>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Description>
-    <Teaser>文明の色設定を、赤または青のチームカラーから選択できるように変更します。</Teaser>
+    <Description>ユニットフラグと都市バナーにチームごとの色を縁どります。チーム1は赤色、チーム2は青色の縁を追加します。</Description>
+    <Teaser>ユニットフラグと都市バナーにチームごとの色を縁どります。チーム1は赤色、チーム2は青色の縁を追加します。</Teaser>
     <Created>1685760070</Created>
     <Authors>rigu</Authors>
     <CompatibleVersions>2.0</CompatibleVersions>
   </Properties>
-  <FrontEndActions>
-    <UpdateColors id="UpFront">
-      <Properties>
-        <LoadOrder>1100</LoadOrder>
-      </Properties>
-      <File>TeamColor.sql</File>
-    </UpdateColors>
-  </FrontEndActions>
+
+  <ActionCriteria>
+    <Criteria id="XP2">
+      <RuleSetInUse>RULESET_EXPANSION_2</RuleSetInUse>
+    </Criteria>
+  </ActionCriteria>
+
   <InGameActions>
-    <UpdateColors id="Database">
+    <ReplaceUIScript id="TeamColor_UnitFlagManager" criteria="XP2">
       <Properties>
-        <LoadOrder>1100</LoadOrder>
+        <LoadOrder>10100</LoadOrder>
+
+        <LuaContext>UnitFlagManager</LuaContext>
+        <LuaReplace>UnitFlagManager.lua</LuaReplace>
       </Properties>
-      <File>TeamColor.sql</File>
-    </UpdateColors>
+    </ReplaceUIScript>
+    <ReplaceUIScript id="TeamColor_CityBannerManager" criteria="XP2">
+      <Properties>
+        <LoadOrder>10100</LoadOrder>
+
+        <LuaContext>CityBannerManager</LuaContext>
+        <LuaReplace>CityBannerManager.lua</LuaReplace>
+      </Properties>
+    </ReplaceUIScript>
+
+    <ImportFiles id="Import" criteria="XP2">
+      <Properties>
+        <LoadOrder>10100</LoadOrder>
+      </Properties>
+      <Items>
+        <File>UnitFlagManager.lua</File>
+        <File>UnitFlagManager.xml</File>
+        <File>CityBannerManager.lua</File>
+        <File>CityBannerInstances.xml</File>
+      </Items>
+    </ImportFiles>
   </InGameActions>
+
   <Files>
-    <File>TeamColor.sql</File>
+    <File>UnitFlagManager.lua</File>
+    <File>UnitFlagManager.xml</File>
+    <File>CityBannerManager.lua</File>
+    <File>CityBannerInstances.xml</File>
   </Files>
 </Mod>
